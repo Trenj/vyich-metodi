@@ -1,85 +1,53 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# ???????? ???????????? ???????
+A = [
+    [26, -9, -8, 8],
+    [9, -21, -2, 8],
+    [-3, 2, -18, 8],
+    [1, -6, -1, 11]
+]
 
-"""
-Пример решения системы линейных уравнений методом простых итераций (Якоби).
+B = [20, -164, 140, -81]
 
-Система (вариант 5):
-  26*x1 -  9*x2 -  8*x3 +  8*x4 =  20
-   9*x1 - 21*x2 -  2*x3 +  8*x4 = -164
-  -3*x1 +  2*x2 - 18*x3 +  8*x4 =  140
-   1*x1 -  6*x2 -  1*x3 + 11*x4 = -81
+# ??????????? ??????? ? ???? X = B*X + C
+n = len(A)
+B_matrix = [[0] * n for _ in range(n)]
+C_vector = [0] * n
 
-Цель — найти (x1, x2, x3, x4) итерационным методом Якоби.
-"""
+for i in range(n):
+    C_vector[i] = B[i] / A[i][i]  # ???????? C
+    for j in range(n):
+        if i != j:
+            B_matrix[i][j] = -A[i][j] / A[i][i]  # ???????? B
 
-def jacobi_iteration(max_iter=20, tol=1e-4):
-    """
-    Функция выполняет итерации метода Якоби для заданной системы.
+# ????????? ???????????
+X = [0] * n
+
+# ????????? ????????????? ??????
+epsilon = 0.001
+max_iterations = 1000
+
+def simple_iteration(B_matrix, C_vector, X, epsilon, max_iterations):
+    n = len(B_matrix)
     
-    Параметры:
-      max_iter : int     — максимальное число итераций
-      tol      : float   — требуемая точность (критерий останова по макс. разнице)
+    for iteration in range(max_iterations):
+        X_new = [0] * n
+        
+        for i in range(n):
+            X_new[i] = sum(B_matrix[i][j] * X[j] for j in range(n)) + C_vector[i]
+        
+        # ???????? ?? ??????????
+        diff = max(abs(X_new[i] - X[i]) for i in range(n))
+        if diff < epsilon:
+            return X_new, iteration + 1
+        
+        X = X_new  # ????????? X
+    
+    raise ValueError("The method did not converge for the given number of iterations")
 
-    Возвращает:
-      (x, k) : кортеж, где
-         x — список из 4 найденных значений (x1, x2, x3, x4),
-         k — число итераций, фактически выполненных до достижения tol или max_iter.
-    """
-    # Изначально берем нулевой вектор как начальное приближение:
-    x = [0.0, 0.0, 0.0, 0.0]  # (x1, x2, x3, x4) на шаге k
-
-    # Для удобства назовем их: x[0] = x1, x[1] = x2, x[2] = x3, x[3] = x4
-    # На каждом шаге будем вычислять новый x_new (x^{(k+1)}).
-
-    print("Метод Якоби (простых итераций).")
-    print("Начальное приближение:", x)
-    print("Максимум итераций =", max_iter, ", критерий =", tol, "\n")
-
-    for k in range(1, max_iter + 1):
-        # Создаем новый список для x^{(k+1)}
-        x_new = [0.0]*4
-
-        # Ниже используем формулы, полученные при разрешении уравнений относительно x_i.
-        # 1) x1^{(k+1)}:
-        x_new[0] = (20 + 9*x[1] + 8*x[2] - 8*x[3]) / 26.0
-
-        # 2) x2^{(k+1)}:
-        x_new[1] = (164 + 9*x[0] - 2*x[2] + 8*x[3]) / 21.0
-
-        # 3) x3^{(k+1)}:
-        x_new[2] = -(140 + 3*x[0] - 2*x[1] - 8*x[3]) / 18.0
-
-        # 4) x4^{(k+1)}:
-        x_new[3] = (-81 - x[0] + 6*x[1] + x[2]) / 11.0
-
-        # Оценим разницу между x^{(k+1)} и x^{(k)} по норме max(|x_i^{(k+1)} - x_i^{(k)}|):
-        diff = max(abs(x_new[i] - x[i]) for i in range(4))
-
-        # Выведем результаты текущей итерации:
-        print(f"Итерация {k}: x_new = {x_new},  разница = {diff:.5f}")
-
-        # Проверяем критерий остановки:
-        if diff < tol:
-            print("\nДостигнута требуемая точность (tol). Останавливаемся.\n")
-            return x_new, k
-
-        # Переходим к следующей итерации: x^{(k)} := x^{(k+1)}
-        x = x_new
-
-    # Если дошли сюда, значит выполнили max_iter итераций, но не достигли tol:
-    print("\nДостигнуто максимальное число итераций без нужной точности.\n")
-    return x, max_iter
-
-
-# ---- Запуск кода ----
-if __name__ == "__main__":
-    # Вызываем функцию итераций
-    solution, steps = jacobi_iteration(max_iter=20, tol=1e-4)
-
-    # Вывод финального результата
-    print("Результат после", steps, "итераций:")
-    print("x1 =", solution[0])
-    print("x2 =", solution[1])
-    print("x3 =", solution[2])
-    print("x4 =", solution[3])
+# ?????? ??????
+try:
+    solution, iterations = simple_iteration(B_matrix, C_vector, X, epsilon, max_iterations)
+    print(f"Solution: {solution}")
+    print(f"Count of iterations: {iterations}")
+except ValueError as e:
+    print(e)
