@@ -1,77 +1,53 @@
-# -*- coding: utf-8 -*-
-
-def forward_elimination(A, b):
-    """Прямой ход метода Гаусса: приведение к треугольному виду"""
-    n = len(A)
-    for i in range(n):
-        # Выбираем главный элемент (если нужно, можно добавить частичный выбор)
-        if A[i][i] == 0:
-            for k in range(i + 1, n):
-                if A[k][i] != 0:
-                    A[i], A[k] = A[k], A[i]
-                    b[i], b[k] = b[k], b[i]
-                    break
-        
-        # Делаем текущий элемент диагонали равным 1 и зануляем ниже
-        diag = A[i][i]
-        for j in range(i, n):
-            A[i][j] /= diag
-        b[i] /= diag
-
-        for k in range(i + 1, n):
-            factor = A[k][i]
-            for j in range(i, n):
-                A[k][j] -= factor * A[i][j]
-            b[k] -= factor * b[i]
-
-def back_substitution(A, b):
-    """Обратный ход метода Гаусса: нахождение решений"""
-    n = len(A)
-    x = [0] * n
-    for i in range(n - 1, -1, -1):
-        x[i] = b[i] - sum(A[i][j] * x[j] for j in range(i + 1, n))
-    return x
-
-def gaussian_elimination(A, b):
-    """Решение СЛАУ методом Гаусса"""
-    forward_elimination(A, b)
-    return back_substitution(A, b)
-
-# Коэффициенты системы
+# ???????? ???????????? ???????
 A = [
-    [20, 5, 7, 1],
-    [-1, 13, 0, -7],
-    [4, -6, 17, 5],
-    [-9, 8, 4, -25]
+    [26, -9, -8, 8],
+    [9, -21, -2, 8],
+    [-3, 2, -18, 8],
+    [1, -6, -1, 11]
 ]
 
-# Правая часть
-b = [-117, -1, 49, -21]
+B = [20, -164, 140, -81]
 
-# Решение системы
-solution = gaussian_elimination(A, b)
+# ??????????? ??????? ? ???? X = B*X + C
+n = len(A)
+B_matrix = [[0] * n for _ in range(n)]
+C_vector = [0] * n
 
-# Вывод результата
-print("Решение системы:", solution)
+for i in range(n):
+    C_vector[i] = B[i] / A[i][i]  # ???????? C
+    for j in range(n):
+        if i != j:
+            B_matrix[i][j] = -A[i][j] / A[i][i]  # ???????? B
 
+# ????????? ???????????
+X = [0] * n
 
-"""
-import numpy as np
+# ????????? ????????????? ??????
+epsilon = 0.001
+max_iterations = 1000
 
-# Коэффициенты системы
-A = np.array([
-    [20, 5, 7, 1],
-    [-1, 13, 0, -7],
-    [4, -6, 17, 5],
-    [-9, 8, 4, -25]
-])
+def simple_iteration(B_matrix, C_vector, X, epsilon, max_iterations):
+    n = len(B_matrix)
+    
+    for iteration in range(max_iterations):
+        X_new = [0] * n
+        
+        for i in range(n):
+            X_new[i] = sum(B_matrix[i][j] * X[j] for j in range(n)) + C_vector[i]
+        
+        # ???????? ?? ??????????
+        diff = max(abs(X_new[i] - X[i]) for i in range(n))
+        if diff < epsilon:
+            return X_new, iteration + 1
+        
+        X = X_new  # ????????? X
+    
+    raise ValueError("The method did not converge for the given number of iterations")
 
-# Вектор правой части
-b = np.array([-117, -1, 49, -21])
-
-# Решаем систему уравнений
-x = np.linalg.solve(A, b)
-
-# Выводим результат
-print("Решение системы:", x)
-"""
+# ?????? ??????
+try:
+    solution, iterations = simple_iteration(B_matrix, C_vector, X, epsilon, max_iterations)
+    print(f"Solution: {solution}")
+    print(f"Count of iterations: {iterations}")
+except ValueError as e:
+    print(e)
