@@ -1,37 +1,39 @@
-# -*- coding: utf-8 -*-
 import math
 
-# Заданные точки
-x_values = [0.2, 0.6, 1.0, 1.4]
-y_values = [math.log(x) for x in x_values]
-
-# Точка, в которой нужно вычислить значение
+# Дано
+x_nodes = [0.2, 0.6, 1.0, 1.4]
 x_star = 0.8
 
-# Функция интерполяции Лагранжа
-def lagrange_interpolation(x_values, y_values, x):
-    n = len(x_values)
-    result = 0.0
-    
-    for i in range(n):
-        term = y_values[i]
-        for j in range(n):
-            if i != j:
-                term *= (x - x_values[j]) / (x_values[i] - x_values[j])
-        result += term
-        
+# Шаг 1: Вычисляем ω(x)
+def omega(x, nodes):
+    result = 1
+    for xi in nodes:
+        result *= (x - xi)
     return result
 
-# Вычисление интерполяционного значения
-P_x = lagrange_interpolation(x_values, y_values, x_star)
+omega_x = omega(x_star, x_nodes)
 
-# Точное значение
-true_value = math.log(x_star)
+# Шаг 2: Находим f⁽⁴⁾(x) = -6 / x^4 и его максимум на отрезке [0.2, 1.4]
+def f4(x):
+    return abs(-6 / (x ** 4))
 
-# Погрешность
-error = abs(P_x - true_value)
+# Ищем максимум на отрезке
+a, b = min(x_nodes), max(x_nodes)
+step = 0.0001
+x = a
+M4 = 0
+while x <= b:
+    val = f4(x)
+    if val > M4:
+        M4 = val
+    x += step
+
+# Шаг 3: Погрешность по формуле
+n = len(x_nodes) - 1  # степень многочлена
+factorial = math.factorial(n + 1)
+error_estimate = (M4 * abs(omega_x)) / factorial
 
 # Вывод результатов
-print(f"Интерполяционное значение в x* = {x_star}: {P_x}")
-print(f"Точное значение ln({x_star}) = {true_value}")
-print(f"Абсолютная погрешность: {error}")
+print("Шаг 1: ω(x) =", omega_x)
+print("Шаг 2: M₄ = max |f⁽⁴⁾(x)| на [0.2, 1.4] =", M4)
+print("Шаг 3: Оценка погрешности |r₃(0.8)| <= ", error_estimate)
