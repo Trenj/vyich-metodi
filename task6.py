@@ -1,19 +1,22 @@
+import math
+
 def cubic_spline_variant5():
-    # Входные данные варианта №5
+    # === ЭТАП 1: Входные данные ===
     x = [0.2, 0.24, 0.27, 0.30, 0.32, 0.38]
     f = [1.2214, 1.2712, 1.3100, 1.3499, 1.3771, 1.4623]
-    alpha = 21.5699  # M0 + M2
-    beta = 3.3378    # M4 + M5
-    x_eval = 0.25    # Точка для интерполяции
-
+    alpha = 21.5699
+    beta = 3.3378
+    x_eval = 0.25
     n = len(x)
+
+    # === ЭТАП 2: Вычисление h_i ===
     h = [x[i+1] - x[i] for i in range(n-1)]
 
-    # Сбор трёхдиагональной системы: A * c = b
-    A = [[0.0]*n for _ in range(n)]
-    b_vec = [0.0]*n
+    # === ЭТАП 3: Формирование A * c = b ===
+    A = [[0.0 for _ in range(n)] for _ in range(n)]
+    b_vec = [0.0 for _ in range(n)]
 
-    # Граничное условие: c0 + c2 = alpha
+    # Уравнение c0 + c2 = alpha
     A[0][0] = 1
     A[0][2] = 1
     b_vec[0] = alpha
@@ -23,54 +26,69 @@ def cubic_spline_variant5():
         A[i][i-1] = h[i-1]
         A[i][i] = 2 * (h[i-1] + h[i])
         A[i][i+1] = h[i]
-        b_vec[i] = 6 * ((f[i+1] - f[i]) / h[i] - (f[i] - f[i-1]) / h[i-1])
+        df1 = (f[i+1] - f[i]) / h[i]
+        df2 = (f[i] - f[i-1]) / h[i-1]
+        b_vec[i] = 6 * (df1 - df2)
 
-    # Граничное условие: c4 + c5 = beta
+    # Уравнение c4 + c5 = beta
     A[n-1][n-2] = 1
     A[n-1][n-1] = 1
     b_vec[n-1] = beta
 
-    # Метод прогонки
-    c = [0.0] * n
-    alpha_tridiag = [0.0] * n
-    beta_tridiag = [0.0] * n
+    # === ЭТАП 4: Решение методом прогонки ===
+    # Прямой ход
+    c = [0.0 for _ in range(n)]
+    alpha_p = [0.0 for _ in range(n)]
+    beta_p = [0.0 for _ in range(n)]
 
-    # Прямая прогонка
-    alpha_tridiag[0] = -A[0][1] / A[0][0]
-    beta_tridiag[0] = b_vec[0] / A[0][0]
+    alpha_p[0] = -A[0][1] / A[0][0] if A[0][0] != 0 else 0
+    beta_p[0] = b_vec[0] / A[0][0] if A[0][0] != 0 else 0
 
     for i in range(1, n):
-        denom = A[i][i] + A[i][i-1] * alpha_tridiag[i-1]
-        alpha_tridiag[i] = -A[i][i+1] / denom if i < n-1 else 0
-        beta_tridiag[i] = (b_vec[i] - A[i][i-1] * beta_tridiag[i-1]) / denom
+        a = A[i][i-1] if i >= 1 else 0
+        b = A[i][i]
+        c_ = A[i][i+1] if i < n-1 else 0
+        denom = b + a * alpha_p[i-1]
+        if denom == 0:
+            raise ZeroDivisionError("Деление на ноль в прогонке")
+        alpha_p[i] = -c_ / denom if i < n-1 else 0
+        beta_p[i] = (b_vec[i] - a * beta_p[i-1]) / denom
 
-    # Обратная прогонка
-    c[n-1] = beta_tridiag[n-1]
+    # Обратный ход
+    c[n-1] = beta_p[n-1]
     for i in range(n-2, -1, -1):
-        c[i] = alpha_tridiag[i] * c[i+1] + beta_tridiag[i]
+        c[i] = alpha_p[i] * c[i+1] + beta_p[i]
 
-    # Вычисляем коэффициенты b и d
-    b_coeffs = [0.0] * (n-1)
-    d_coeffs = [0.0] * (n-1)
+    # === ЭТАП 5: Вычисление b_i и d_i ===
+    b_coeffs = [0.0 for _ in range(n-1)]
+    d_coeffs = [0.0 for _ in range(n-1)]
 
     for i in range(n-1):
         d_coeffs[i] = (c[i+1] - c[i]) / h[i]
-        b_coeffs[i] = ((f[i+1] - f[i]) / h[i]) - h[i] * (2 * c[i] + c[i+1]) / 6
+        b_coeffs[i] = (f[i+1] - f[i]) / h[i] - h[i] * (2 * c[i] + c[i+1]) / 6
 
-    # Поиск интервала, в который попадает x_eval
+    # === ЭТАП 6: Определение нужного интервала для x_eval ===
     for i in range(n-1):
         if x[i] <= x_eval <= x[i+1]:
-            dx = x_eval - x[i]
-            Sx = f[i] + b_coeffs[i]*dx + c[i]*dx**2/2 + d_coeffs[i]*dx**3/6
+            segment = i
             break
     else:
-        Sx = None  # x_eval вне диапазона
+        raise ValueError("x_eval вне диапазона")
 
-    # Вывод
-    print("Значение S(0.25):", round(Sx, 6))
+    # === ЭТАП 7: Вычисление S(x_eval) ===
+    dx = x_eval - x[segment]
+    Sx = (
+        f[segment]
+        + b_coeffs[segment] * dx
+        + c[segment] * dx**2 / 2
+        + d_coeffs[segment] * dx**3 / 6
+    )
+
+    # === Вывод ===
+    print(f"Значение S({x_eval}) ≈ {round(Sx, 6)}\n")
     print("Коэффициенты c:", [round(ci, 6) for ci in c])
     print("Коэффициенты b:", [round(bi, 6) for bi in b_coeffs])
     print("Коэффициенты d:", [round(di, 6) for di in d_coeffs])
 
-# Запуск
+# Запуск программы
 cubic_spline_variant5()
